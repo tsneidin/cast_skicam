@@ -1,0 +1,10 @@
+.env
+/data/
+__pycache__/
+*.pyc
+*.log
+*.tar.gz
+*.ts
+*.m3u8
+*.jpg
+*.png
