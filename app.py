@@ -137,7 +137,7 @@ def resolve(cam):
         url = match.group(1)
     elif kind in ("youtube", "embedded"):
         result = subprocess.run(["yt-dlp", "--no-playlist", "--no-warnings", "--socket-timeout", "10",
-                                 "-f", "b[height<=720]/b", "-g", url], capture_output=True,
+                                 "-f", "b[height<=720]/bv*[height<=720]/bv*", "-g", url], capture_output=True,
                                 text=True, timeout=25)
         if result.returncode:
             raise RuntimeError("Cannot resolve embedded feed: " + result.stderr[-200:])
@@ -316,6 +316,8 @@ def start():
     global ENCODER
     with LOCK:
         if STATE["active"]:
+            if CAST and CAST.media_controller.status.content_id == STREAM_URL and CAST.media_controller.status.player_state == "PAUSED":
+                CAST.media_controller.play()
             return
         # A new session must not replay an old cached playlist.
         for path in ROOT.glob("*"):

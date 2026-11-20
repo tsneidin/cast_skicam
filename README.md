@@ -16,7 +16,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-The control page is `http://<BIND_HOST>:8106/`. Use **Start on Hub Max** and **Stop**. Playback starts only when requested. The browser does not need to stay open. The service uses a continuous 1280 × 720, 15 fps H.264 stream with silent AAC audio so camera changes do not interrupt Cast playback.
+The control page is `http://<BIND_HOST>:8106/`. Use **Start on Hub Max** and **Stop**. Start also resumes a paused channel. Playback starts only when requested. The browser does not need to stay open. The service uses a continuous 1280 × 720, 15 fps H.264 stream with silent AAC audio so camera changes do not interrupt Cast playback.
 
 For an existing Unraid installation at `/mnt/user/appdata/ski-cams`, update the source while preserving its private Compose configuration:
 
