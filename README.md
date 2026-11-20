@@ -25,7 +25,7 @@ git clone https://github.com/tsneidin/cast_skicam.git /tmp/cast_skicam_update
 bash /tmp/cast_skicam_update/deploy-unraid.sh
 ```
 
-The script backs up the prior application source under the installation directory, copies the new code, and rebuilds the container. Rebuilding interrupts any current cast. It does not start playback; use the control page afterward.
+The script backs up the prior application source under the installation directory, builds the new image, stops the current Cast session, and replaces the container. It does not start playback; use the control page afterward. Stopping the Cast session before replacement prevents the Hub from repeatedly requesting a missing playlist.
 
 ## Manage
 

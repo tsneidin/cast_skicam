@@ -18,6 +18,10 @@ backup_dir="$target_dir/previous-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$backup_dir"
 cp "$target_dir/app.py" "$target_dir/Dockerfile" "$target_dir/cameras.json" "$backup_dir/"
 cp "$source_dir/app.py" "$source_dir/catalog.py" "$source_dir/cameras.json" "$source_dir/Dockerfile" "$source_dir/README.md" "$target_dir/"
-(cd "$target_dir" && docker compose up -d --build)
+(cd "$target_dir" && docker compose build)
+if docker container inspect -f '{{.State.Running}}' ski-cams 2>/dev/null | grep -qx true; then
+  docker exec ski-cams python -c "from urllib.request import Request, urlopen; urlopen(Request('http://127.0.0.1:8106/stop', data=b''), timeout=10).read()"
+fi
+(cd "$target_dir" && docker compose up -d --no-build)
 (cd "$target_dir" && docker compose ps)
 echo "Previous source: $backup_dir"
