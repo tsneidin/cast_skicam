@@ -307,7 +307,7 @@ def stop(quit_app=True):
             if process and process.poll() is None:
                 process.terminate()
                 try:
-                    process.wait(timeout=5)
+                    process.wait(timeout=2)
                 except subprocess.TimeoutExpired:
                     process.kill()
     if quit_app and CAST and CAST.media_controller.status.content_id == STREAM_URL:
