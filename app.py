@@ -273,29 +273,47 @@ def launch_encoder():
         '-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '64k',
         '-c:v', 'libx264', '-threads', '2', '-preset', 'veryfast',
         '-profile:v', 'main', '-level:v', '3.1', '-pix_fmt', 'yuv420p', '-crf', '24',
-        '-maxrate', '1600k', '-bufsize', '3200k', '-g', '45', '-keyint_min', '45',
-        '-sc_threshold', '0', '-f', 'hls', '-hls_time', '3', '-hls_list_size', '12',
+        '-maxrate', '1600k', '-bufsize', '3200k', '-g', '30', '-keyint_min', '30',
+        '-sc_threshold', '0', '-f', 'hls', '-hls_time', '2', '-hls_list_size', '5',
         '-hls_flags', 'delete_segments+omit_endlist+temp_file',
         '-hls_segment_filename', str(ROOT / 'segment%08d.ts'), str(ROOT / 'live.m3u8')
     ], stdin=subprocess.PIPE)
 
 
 def next_camera():
-    global SKIP_ACTION
+    global SKIP_ACTION, PROCESS
     with LOCK:
         SKIP_ACTION = "next"
+        STATE['camera'] = "Switching to next camera…"
+        while not FRAMES.empty():
+            try:
+                FRAMES.get_nowait()
+            except queue.Empty:
+                break
         p = PROCESS
         if p and p.poll() is None:
-            p.terminate()
+            try:
+                p.kill()
+            except Exception:
+                pass
 
 
 def prev_camera():
-    global SKIP_ACTION
+    global SKIP_ACTION, PROCESS
     with LOCK:
         SKIP_ACTION = "prev"
+        STATE['camera'] = "Switching to previous camera…"
+        while not FRAMES.empty():
+            try:
+                FRAMES.get_nowait()
+            except queue.Empty:
+                break
         p = PROCESS
         if p and p.poll() is None:
-            p.terminate()
+            try:
+                p.kill()
+            except Exception:
+                pass
 
 
 def set_duration(seconds):
@@ -324,7 +342,7 @@ def channel():
             SKIP_ACTION = None
 
         if action == "prev":
-            cam, next_cam = ROTATION.prev()
+            cam, next_cam = ROTATION.prev(CAMS, FAILED_UNTIL)
             if cam is None:
                 cam, next_cam = ROTATION.next(CAMS, FAILED_UNTIL)
         else:
@@ -334,13 +352,21 @@ def channel():
             time.sleep(5)
             continue
 
+        with LOCK:
+            STATE['camera'] = cam['resort'] + ' / ' + cam['camera']
+            STATE['error'] = None
+
         timer = None
         process = None
         current_duration = STATE.get("rotation_seconds", SECONDS)
         try:
             footer(cam, next_cam)
+            if SKIP_ACTION:
+                continue
             source, still = resolve(cam)
-            STATE['camera'] = cam['resort'] + ' / ' + cam['camera']
+            if SKIP_ACTION:
+                continue
+
             logging.info('Producing %s (duration %ds)', STATE['camera'], current_duration)
             filters = ('[0:v]fps=15,scale=1280:620:force_original_aspect_ratio=increase,'
                        'crop=1280:620,pad=1280:720:0:0:color=black,setsar=1[v];'
@@ -353,7 +379,7 @@ def channel():
                        '-map', '[out]', '-an', '-t', str(current_duration), '-r', '15',
                        '-threads', '2', '-pix_fmt', 'yuv420p', '-f', 'rawvideo', 'pipe:1']
             with LOCK:
-                if not STATE['active'] or STATE['generation'] != generation:
+                if not STATE['active'] or STATE['generation'] != generation or SKIP_ACTION:
                     continue
                 process = subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=frame_size)
                 PROCESS = process
@@ -382,7 +408,7 @@ def channel():
 
             was_skipped = bool(SKIP_ACTION)
             if process.poll() is None:
-                process.terminate()
+                process.kill()
             result = process.wait(timeout=5)
 
             if was_skipped:
@@ -566,9 +592,9 @@ PAGE = """<!doctype html>
       background: #0b1821; color: white; border: 1px solid #739cac; border-radius: 6px;
     }
     .quick-btn { padding: 6px 12px; font-size: 14px; background: #1c323d; border-color: #3b5f70; }
-    .card { background: #13222d; border-radius: 8px; border: 1px solid #233d4a; padding: 18px 20px; margin: 20px 0; }
+    .card { background: #13222d; border-radius: 8px; border: 1px solid #233d4a; padding: 18px 20px; margin: 20px 0; min-height: 90px; }
     #status { font-size: 18px; color: #edf4f7; margin-bottom: 6px; }
-    #camera-name { font-size: 20px; color: #5bc0be; font-weight: bold; margin: 4px 0 10px; }
+    #camera-name { font-size: 20px; color: #5bc0be; font-weight: bold; margin: 4px 0 10px; min-height: 28px; }
     #cameras { margin: 0; color: #8fa7b3; font-size: 15px; }
     small { color: #8fa7b3; display: block; margin-top: 24px; line-height: 1.4; }
     a { color: #7ec8e3; text-decoration: none; }
@@ -582,8 +608,8 @@ PAGE = """<!doctype html>
   <div class="btn-group">
     <button class="primary" onclick="control('start')">▶ Start App</button>
     <button class="danger" onclick="control('stop')">⏹ Stop</button>
-    <button onclick="control('prev')">⏮ Prev</button>
-    <button onclick="control('next')">Next ⏭</button>
+    <button id="btn-prev" onclick="control('prev')">⏮ Prev</button>
+    <button id="btn-next" onclick="control('next')">Next ⏭</button>
   </div>
 
   <div class="duration-panel">
@@ -615,8 +641,26 @@ PAGE = """<!doctype html>
     durInput.addEventListener('blur', () => durationFocused = false);
 
     async function control(action) {
-      await fetch('/' + action, { method: 'POST' });
-      update();
+      const statusEl = document.getElementById('status');
+      const camEl = document.getElementById('camera-name');
+      if (action === 'next') {
+        camEl.textContent = '⏭ Switching to next camera…';
+      } else if (action === 'prev') {
+        camEl.textContent = '⏮ Switching to previous camera…';
+      } else if (action === 'start') {
+        statusEl.textContent = 'Starting…';
+      } else if (action === 'stop') {
+        statusEl.textContent = 'Stopping…';
+      }
+      try {
+        const res = await (await fetch('/' + action, { method: 'POST' })).json();
+        if (res.camera && !res.camera.startsWith('Switching')) {
+          camEl.textContent = res.camera;
+        }
+      } catch (e) {
+        statusEl.textContent = 'Error sending command';
+      }
+      setTimeout(update, 300);
     }
 
     async function applyDuration() {
@@ -641,7 +685,11 @@ PAGE = """<!doctype html>
         const s = await (await fetch('/status')).json();
         const activeText = s.active ? (s.casting ? 'Casting to Hub Max' : 'Channel Streaming') : 'Stopped';
         document.getElementById('status').textContent = activeText + (s.error ? ' | Error: ' + s.error : '');
-        document.getElementById('camera-name').textContent = s.active && s.camera ? s.camera : '';
+        if (s.active && s.camera) {
+          document.getElementById('camera-name').textContent = s.camera;
+        } else if (!s.active) {
+          document.getElementById('camera-name').textContent = '';
+        }
         document.getElementById('cameras').textContent = 
           s.camera_count + ' cameras in catalog · ' +
           s.failed_cameras + ' failed attempts · ' +
@@ -655,7 +703,7 @@ PAGE = """<!doctype html>
     }
 
     update();
-    setInterval(update, 2500);
+    setInterval(update, 2000);
   </script>
 </body>
 </html>"""
@@ -735,10 +783,12 @@ class Handler(SimpleHTTPRequestHandler):
             if not STATE["active"]:
                 threading.Thread(target=start, daemon=True).start()
             next_camera()
+            return self.reply(json.dumps({"ok": True, "camera": STATE.get("camera")}).encode(), "application/json")
         elif path == "/prev":
             if not STATE["active"]:
                 threading.Thread(target=start, daemon=True).start()
             prev_camera()
+            return self.reply(json.dumps({"ok": True, "camera": STATE.get("camera")}).encode(), "application/json")
         elif path == "/duration":
             val = params.get("seconds", params.get("duration", [None]))[0]
             if val is not None:

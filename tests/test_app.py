@@ -112,6 +112,22 @@ class AppHttpTests(unittest.TestCase):
         res = json.loads(handler.wfile.getvalue().decode())
         self.assertTrue(res.get("ok"))
 
+    def test_next_and_prev_camera_actions(self):
+        import app
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = None
+        app.PROCESS = mock_proc
+
+        next_camera()
+        self.assertEqual(app.SKIP_ACTION, "next")
+        mock_proc.kill.assert_called_once()
+
+        mock_proc.reset_mock()
+        mock_proc.poll.return_value = None
+        prev_camera()
+        self.assertEqual(app.SKIP_ACTION, "prev")
+        mock_proc.kill.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
