@@ -16,7 +16,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-The control page is `http://<BIND_HOST>:8106/`. Use **Start on Hub Max** and **Stop**. Start also resumes a paused channel. Playback starts only when requested. The browser does not need to stay open. The service uses a continuous 1280 × 720, 15 fps H.264 stream with silent AAC audio so camera changes do not interrupt Cast playback.
+The control page is `http://<BIND_HOST>:8106/`. The container starts casting automatically when Docker starts it. Use **Stop** to end playback without stopping the container; **Start on Hub Max** starts or resumes it. The browser does not need to stay open. Set `AUTO_START=false` in the container environment to disable automatic casting. The service uses a continuous 1280 × 720, 15 fps H.264 stream with silent AAC audio so camera changes do not interrupt Cast playback.
 
 For an existing Unraid installation at `/mnt/user/appdata/ski-cams`, update the source while preserving its private Compose configuration:
 
@@ -25,7 +25,7 @@ git clone https://github.com/tsneidin/cast_skicam.git /tmp/cast_skicam_update
 bash /tmp/cast_skicam_update/deploy-unraid.sh
 ```
 
-The script backs up the prior application source under the installation directory, builds the new image, stops the current Cast session, and replaces the container. It does not start playback; use the control page afterward. Stopping the Cast session before replacement prevents the Hub from repeatedly requesting a missing playlist.
+The script backs up the prior application source under the installation directory, builds the new image, stops the current Cast session, and replaces the container. The replacement starts casting automatically. Stopping the Cast session before replacement prevents the Hub from repeatedly requesting a missing playlist.
 
 ## Manage
 

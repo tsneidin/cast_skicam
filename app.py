@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import queue
+import signal
 import subprocess
 import threading
 import time
@@ -27,9 +28,11 @@ CATALOG_CACHE = Path("/data/cameras.json")
 BASE = os.environ["PUBLIC_URL"]
 STREAM_URL = BASE + "/live.m3u8"
 SECONDS = max(15, min(300, int(os.environ.get("ROTATE_SECONDS", "45"))))
+AUTO_START = os.environ.get("AUTO_START", "true").lower() in ("1", "true", "yes", "on")
 STATE = {"active": False, "casting": False, "camera": None, "error": None,
          "generation": 0, "rotation_seconds": SECONDS, "completed_cameras": 0, "cast_state": None,
-         "failed_cameras": 0, "catalog_updated": None, "rotation_mode": "shuffled_no_repeat"}
+         "failed_cameras": 0, "catalog_updated": None, "rotation_mode": "shuffled_no_repeat",
+         "auto_start": AUTO_START}
 LOCK = threading.RLock()
 WAKE = threading.Event()
 PROCESS = None
@@ -334,7 +337,9 @@ def start():
         WAKE.set()
     try:
         cast = connect_cast()
-        deadline = time.monotonic() + 100
+        if cast.media_controller.status.content_id == STREAM_URL:
+            cast.quit_app()
+        deadline = time.monotonic() + 300
         while STATE["active"] and time.monotonic() < deadline:
             playlist = ROOT / "live.m3u8"
             if playlist.exists() and playlist.read_text().count("#EXTINF") >= 3:
@@ -345,7 +350,7 @@ def start():
                 return
             time.sleep(1)
         if STATE["active"]:
-            raise TimeoutError("No playable camera stream was produced within 100 seconds")
+            raise TimeoutError("No playable camera stream was produced within 300 seconds")
     except Exception as error:
         STATE["error"] = str(error)
         logging.exception("Cannot start display")
@@ -367,6 +372,11 @@ def monitor():
         if misses >= 5:
             logging.info("Playback stopped or another application took over")
             stop(False)
+
+
+def shutdown(signum, frame):
+    stop()
+    raise SystemExit(0)
 
 
 PAGE = """<!doctype html><html lang=en><meta name=viewport content="width=device-width, initial-scale=1">
@@ -429,6 +439,9 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, shutdown)
     for target in (channel, monitor, refresh_catalog):
         threading.Thread(target=target, daemon=True).start()
+    if AUTO_START:
+        threading.Thread(target=start, daemon=True).start()
     ThreadingHTTPServer(("0.0.0.0", 8106), Handler).serve_forever()

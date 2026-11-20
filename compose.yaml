@@ -11,6 +11,7 @@ services:
       CAST_UUID: ${CAST_UUID}
       PUBLIC_URL: http://${BIND_HOST}:8106
       ROTATE_SECONDS: "45"
+      AUTO_START: "true"
     volumes:
       - ./data:/data
     tmpfs:
