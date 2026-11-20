@@ -1,0 +1,40 @@
+[
+  {
+    "resort": "Vail",
+    "camera": "Mountain view",
+    "url": "https://live9.brownrice.com:444/vailch11/vailch11.stream/playlist.m3u8",
+    "lat": 39.606,
+    "lon": -106.355
+  },
+  {
+    "resort": "Keystone",
+    "camera": "Bergman Bowl",
+    "url": "https://live8.brownrice.com:444/keystonebergman/keystonebergman.stream/playlist.m3u8",
+    "lat": 39.579,
+    "lon": -105.943
+  },
+  {
+    "resort": "Breckenridge",
+    "camera": "Peak 8 from Peak 9",
+    "url": "https://live9.brownrice.com:444/breckenridge9/breckenridge9.stream/main_playlist.m3u8",
+    "lat": 39.471,
+    "lon": -106.076
+  },
+  {
+    "resort": "Keystone",
+    "camera": "North Peak",
+    "url": "https://live9.brownrice.com:444/keystonenorthpeak/keystonenorthpeak.stream/playlist.m3u8",
+    "lat": 39.579,
+    "lon": -105.943
+  },
+  {
+    "resort": "Heavenly",
+    "camera": "Top of Tram",
+    "url": "https://live9.brownrice.com:444/heavenlytram/heavenlytram.stream/playlist.m3u8",
+    "lat": 38.929,
+    "lon": -119.923,
+    "region": "Lake Tahoe",
+    "timezone": "America/Los_Angeles",
+    "zone_label": "PT"
+  }
+]
