@@ -5,13 +5,13 @@ services:
     container_name: ski-cams
     restart: unless-stopped
     ports:
-      - "${BIND_HOST}:8106:8106"
+      - "${BIND_HOST:-0.0.0.0}:8106:8106"
     environment:
-      CAST_HOST: ${CAST_HOST}
-      CAST_UUID: ${CAST_UUID}
-      PUBLIC_URL: http://${BIND_HOST}:8106
-      ROTATE_SECONDS: "45"
-      AUTO_START: "true"
+      CAST_HOST: ${CAST_HOST:-}
+      CAST_UUID: ${CAST_UUID:-}
+      PUBLIC_URL: http://${BIND_HOST:-localhost}:8106
+      ROTATE_SECONDS: "${ROTATE_SECONDS:-45}"
+      AUTO_START: "${AUTO_START:-true}"
     volumes:
       - ./data:/data
     tmpfs:

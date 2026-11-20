@@ -23,6 +23,39 @@ class ShuffledRotationTests(unittest.TestCase):
         self.assertEqual(rotation.next(updated, {})[0]["url"], "c")
         self.assertEqual(rotation.next(updated, {"c": float("inf")}), (None, None))
 
+    def test_prev_and_next_navigation(self):
+        cameras = [{"url": "1"}, {"url": "2"}, {"url": "3"}]
+        rotation = ShuffledRotation()
+        # prev on empty history returns (None, None)
+        self.assertEqual(rotation.prev(), (None, None))
+
+        cam1, _ = rotation.next(cameras, {})
+        cam2, _ = rotation.next(cameras, {})
+        cam3, _ = rotation.next(cameras, {})
+
+        # We are at cam3. Calling prev should give cam2
+        prev_cam, next_cam = rotation.prev()
+        self.assertEqual(prev_cam["url"], cam2["url"])
+        self.assertEqual(next_cam["url"], cam3["url"])
+
+        # Calling prev again should give cam1
+        prev_cam2, next_cam2 = rotation.prev()
+        self.assertEqual(prev_cam2["url"], cam1["url"])
+        self.assertEqual(next_cam2["url"], cam2["url"])
+
+        # Calling prev at start should still stay at cam1
+        prev_cam3, _ = rotation.prev()
+        self.assertEqual(prev_cam3["url"], cam1["url"])
+
+        # Calling next should traverse forward: cam2
+        fwd_cam, _ = rotation.next(cameras, {})
+        self.assertEqual(fwd_cam["url"], cam2["url"])
+
+        # Calling next should reach cam3
+        fwd_cam2, _ = rotation.next(cameras, {})
+        self.assertEqual(fwd_cam2["url"], cam3["url"])
+
+
 
 if __name__ == "__main__":
     unittest.main()

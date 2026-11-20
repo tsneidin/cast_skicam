@@ -16,7 +16,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-The control page is `http://<BIND_HOST>:8106/`. The container starts casting automatically when Docker starts it. Use **Stop** to end playback without stopping the container; **Start on Hub Max** starts or resumes it. The browser does not need to stay open. Set `AUTO_START=false` in the container environment to disable automatic casting. The service uses a continuous 1280 × 720, 15 fps H.264 stream with silent AAC audio so camera changes do not interrupt Cast playback.
+The control page is `http://<BIND_HOST>:8106/`. The container starts casting automatically when Docker starts it. From the web console, you can use **Start App** to start or resume streaming, **Stop** to end playback without stopping the container, and **Prev** / **Next** buttons to immediately navigate between cameras. Viewing duration can be adjusted dynamically in the web console or set via the `ROTATE_SECONDS` environment variable. The browser does not need to stay open. Set `AUTO_START=false` in the container environment to disable automatic casting. The service uses a continuous 1280 × 720, 15 fps H.264 stream with silent AAC audio so camera changes do not interrupt Cast playback.
 
 For an existing Unraid installation at `/mnt/user/appdata/ski-cams`, update the source while preserving its private Compose configuration:
 
@@ -33,11 +33,14 @@ The script backs up the prior application source under the installation director
 docker logs --tail 50 ski-cams
 docker stats --no-stream ski-cams
 curl http://<BIND_HOST>:8106/status
+curl -X POST http://<BIND_HOST>:8106/next
+curl -X POST http://<BIND_HOST>:8106/prev
+curl -X POST http://<BIND_HOST>:8106/duration -H 'Content-Type: application/json' -d '{"seconds": 60}'
 docker compose up -d --build
 docker compose down
 ```
 
-Change `ROTATE_SECONDS` in `compose.yaml` to alter the display time. The bundled `cameras.json` is a fallback snapshot. On startup, the service fetches the site catalog and writes it to `data/cameras.json`; edits to that cached file are replaced at the next refresh. Rebuilding interrupts an active Cast session. The runtime HLS segments use a 96 MB RAM filesystem, and no video is archived. The container is limited to 2 CPU cores and 768 MB of memory.
+Change `ROTATE_SECONDS` in `compose.yaml` (default 45s) or adjust viewing duration on the fly in the web console (or via `/duration`). The bundled `cameras.json` is a fallback snapshot. On startup, the service fetches the site catalog and writes it to `data/cameras.json`; edits to that cached file are replaced at the next refresh. Rebuilding interrupts an active Cast session. The runtime HLS segments use a 96 MB RAM filesystem, and no video is archived. The container is limited to 2 CPU cores and 768 MB of memory.
 
 The control page uses local HTTP without authentication. Bind it to a LAN address and do not expose port 8106 publicly. Browser cross-origin POST requests are rejected.
 
