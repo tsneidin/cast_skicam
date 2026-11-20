@@ -1,0 +1,24 @@
+services:
+  ski-cams:
+    build: .
+    image: local/ski-cams:1
+    container_name: ski-cams
+    restart: unless-stopped
+    ports:
+      - "${BIND_HOST}:8106:8106"
+    environment:
+      CAST_HOST: ${CAST_HOST}
+      CAST_UUID: ${CAST_UUID}
+      PUBLIC_URL: http://${BIND_HOST}:8106
+      ROTATE_SECONDS: "45"
+    volumes:
+      - ./data:/data
+    tmpfs:
+      - /stream:size=96m
+    cpus: 2
+    mem_limit: 768m
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "2"
