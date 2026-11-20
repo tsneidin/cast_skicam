@@ -72,6 +72,8 @@ def discover():
                 logging.warning("Catalog page %s failed: %s", path, error)
     if failures or len(cameras) < 500:
         raise RuntimeError(f"Catalog incomplete: {len(cameras)} cameras, {len(failures)} page failures")
+    # Start with a previously verified direct feed so initial Cast buffering is prompt.
+    cameras.sort(key=lambda cam: 0 if "vailch11/vailch11.stream" in cam["url"] else 1)
     return cameras
 
 

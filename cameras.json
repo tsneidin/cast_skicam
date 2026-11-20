@@ -1,5 +1,13 @@
 [
   {
+    "resort": "Vail",
+    "camera": "Camera 2",
+    "region": "Colorado",
+    "kind": "video",
+    "url": "https://live9.brownrice.com:444/vailch11/vailch11.stream/playlist.m3u8",
+    "page": "https://skicamslive.com/mountain/vail/"
+  },
+  {
     "resort": "Arizona Snowbowl Webcam: Live Cam & Conditions | Arizona",
     "camera": "Camera 1",
     "region": "Arizona",
@@ -2885,14 +2893,6 @@
     "region": "Colorado",
     "kind": "video",
     "url": "https://live6.brownrice.com:444/vailbluesky/vailbluesky.stream/playlist.m3u8",
-    "page": "https://skicamslive.com/mountain/vail/"
-  },
-  {
-    "resort": "Vail",
-    "camera": "Camera 2",
-    "region": "Colorado",
-    "kind": "video",
-    "url": "https://live9.brownrice.com:444/vailch11/vailch11.stream/playlist.m3u8",
     "page": "https://skicamslive.com/mountain/vail/"
   },
   {
