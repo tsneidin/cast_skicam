@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
 import pychromecast
 import catalog
+from rotation import ShuffledRotation
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 ROOT = Path(os.environ.get("STREAM_DIR", "/stream"))
@@ -28,7 +29,7 @@ STREAM_URL = BASE + "/live.m3u8"
 SECONDS = max(15, min(300, int(os.environ.get("ROTATE_SECONDS", "45"))))
 STATE = {"active": False, "casting": False, "camera": None, "error": None,
          "generation": 0, "rotation_seconds": SECONDS, "completed_cameras": 0, "cast_state": None,
-         "failed_cameras": 0, "catalog_updated": None}
+         "failed_cameras": 0, "catalog_updated": None, "rotation_mode": "shuffled_no_repeat"}
 LOCK = threading.RLock()
 WAKE = threading.Event()
 PROCESS = None
@@ -37,6 +38,7 @@ FRAMES = queue.Queue(maxsize=3)
 CAST = None
 WEATHER = {}
 FAILED_UNTIL = {}
+ROTATION = ShuffledRotation()
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
@@ -95,7 +97,8 @@ def footer(cam, next_cam):
     draw.text((28, 13), cam["resort"], font=ImageFont.truetype(BOLD, 30), fill="white")
     draw.text((28, 57), cam["camera"] + "  /  " + cam.get("region", "Colorado"), font=ImageFont.truetype(FONT, 19), fill="#b7c9d2")
     draw.text((510, 18), weather(cam), font=ImageFont.truetype(FONT, 21), fill="white")
-    draw.text((510, 59), "Next: " + next_cam["resort"] + " / " + next_cam["camera"],
+    next_label = next_cam["resort"] + " / " + next_cam["camera"] if next_cam else "New random cycle"
+    draw.text((510, 59), "Next: " + next_label,
               font=ImageFont.truetype(FONT, 17), fill="#b7c9d2")
     if cam.get("timezone"):
         clock = datetime.now(ZoneInfo(cam["timezone"])).strftime("%I:%M %p")
@@ -202,7 +205,6 @@ def launch_encoder():
 
 def channel():
     global PROCESS
-    index = 0
     frame_size = 1280 * 720 * 3 // 2
     while True:
         if not STATE['active']:
@@ -210,11 +212,9 @@ def channel():
             WAKE.clear()
             continue
         generation = STATE['generation']
-        lineup = CAMS
-        cam = lineup[index % len(lineup)]
-        next_cam = lineup[(index + 1) % len(lineup)]
-        if FAILED_UNTIL.get(cam["url"], 0) > time.time():
-            index += 1
+        cam, next_cam = ROTATION.next(CAMS, FAILED_UNTIL)
+        if cam is None:
+            time.sleep(5)
             continue
         timer = None
         process = None
@@ -283,7 +283,6 @@ def channel():
                     PROCESS = None
             if process and process.stdout:
                 process.stdout.close()
-        index += 1
 
 
 def connect_cast():

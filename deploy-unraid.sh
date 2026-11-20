@@ -8,7 +8,7 @@ if [[ ! -f "$target_dir/compose.yaml" || ! -f "$target_dir/app.py" ]]; then
   echo "Existing ski camera Compose installation not found at $target_dir" >&2
   exit 1
 fi
-if [[ ! -f "$source_dir/catalog.py" || ! -f "$source_dir/cameras.json" ]]; then
+if [[ ! -f "$source_dir/catalog.py" || ! -f "$source_dir/rotation.py" || ! -f "$source_dir/cameras.json" ]]; then
   echo "Updated source files are missing from $source_dir" >&2
   exit 1
 fi
@@ -17,7 +17,7 @@ fi
 backup_dir="$target_dir/previous-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$backup_dir"
 cp "$target_dir/app.py" "$target_dir/Dockerfile" "$target_dir/cameras.json" "$backup_dir/"
-cp "$source_dir/app.py" "$source_dir/catalog.py" "$source_dir/cameras.json" "$source_dir/Dockerfile" "$source_dir/README.md" "$target_dir/"
+cp "$source_dir/app.py" "$source_dir/catalog.py" "$source_dir/rotation.py" "$source_dir/cameras.json" "$source_dir/Dockerfile" "$source_dir/README.md" "$target_dir/"
 (cd "$target_dir" && docker compose build)
 if docker container inspect -f '{{.State.Running}}' ski-cams 2>/dev/null | grep -qx true; then
   docker exec ski-cams python -c "from urllib.request import Request, urlopen; urlopen(Request('http://127.0.0.1:8106/stop', data=b''), timeout=10).read()"
